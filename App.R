@@ -21,9 +21,8 @@
 
 # Required packages
 lapply(list("rtweet", "haven", "qdap", "tm", "syuzhet", "SnowballC", "wesanderson",
-            "tidytext", "dplyr", "purrr", "readr", "stringr", "magrittr", 
             "shiny", "shinydashboard", "shinythemes", "shinyWidgets", "waiter",
-            "wordcloud2", "ggplot2"),
+            "plotly", "wordcloud2", "tidytext", "tidyverse", "magrittr"),
        library, character.only = T)
 
 # Loading Twitter data
@@ -102,7 +101,9 @@ body <- dashboardBody(
             dateRangeInput("date_range",
                            label = h3("Date range"),
                            start = "2021-11-17",
-                           end = "2021-12-08"),
+                           min   = "2021-12-08",
+                           end   = Sys.Date()-2,
+                           max   = Sys.Date()-2),
             actionBttn(
               inputId = "submit_wordcloud",
               label = "Submit",
@@ -117,7 +118,7 @@ body <- dashboardBody(
     
     # Mentions per candidate
     tabItem(
-      tabName = "mentions_candidate",
+      tabName = "mentions",
       fluidRow(
         box(title = "Filters",
             width = 4,
@@ -128,17 +129,19 @@ body <- dashboardBody(
               choices = NULL,
               choiceNames = as.list(names(candidates.ls)),
               choiceValues = candidates.ls %>%  map_chr(2)),
-            dateRangeInput("date_range",
+            dateRangeInput("date_range2",
                            label = h3("Date range"),
                            start = "2021-11-17",
-                           end = "2021-12-08"),
+                           min   = "2021-11-17",
+                           end   = Sys.Date()-2,
+                           max   = Sys.Date()-2),
             actionBttn(
               inputId = "submit_mentions",
               label = "Submit",
-              style = "unite", 
+              style = "unite",
               color = "success",
               size  =  "sm")),
-        box(plotlyOutput("mentionsPlot"),
+        box(plotlyOutput("mentions"),
             height = 500,
             width = 8)
       )
@@ -219,7 +222,10 @@ collapse4love <- function(filtered_data, selection_filter){
     summarise(across(starts_with("filter_"), 
                      ~sum(.x),
                      .names = "{gsub('filter_', 'sum_', {.col}, fixed = TRUE)}")) %>%
-    mutate(day = as.Date(day, format="%Y-%m-%d"))
+    mutate(day = as.Date(day, format="%Y-%m-%d")) %>%
+    pivot_longer(!day, 
+                 names_to = c(".value", "candidate"),
+                 names_sep = "_")
   
   
   
@@ -250,14 +256,12 @@ server <- function(input, output){
   
   # Creating wordcloud
   wordcloud.wc2 <- eventReactive(input$submit_wordcloud, {
-    
-    coolwaiter$show()
       
-    # Applying cleaning function
-    selection4counting.df <- filter4love(selectionWC = input$selected_candidates, 
-                                     datesWC     = input$date_range)
+    # Applying cleaning function (waiter needed)
+    coolwaiter$show()
+    selection4counting.df <- filter4love(selection_filter = input$selected_candidates, 
+                                         dates_filter     = input$date_range)
     data4wordcloud.df <- counting4love(filtered_data = selection4counting.df)
-    
     coolwaiter$hide()
     
     # Running wordcloud
@@ -272,8 +276,48 @@ server <- function(input, output){
     wordcloud.wc2()
   })
   
+  
+  ## 3.2 Mentions Panel ========================================================================================
+  
+  # Creating mentions plot
+  mentions.ptly <- eventReactive(input$submit_mentions, {
+    
+    # Applying cleaning function (waiter needed)
+    #coolwaiter$show()
+    selection4counting.df <- filter4love(selection_filter = input$selected_candidates, 
+                                         dates_filter     = input$date_range)
+    data4plotly.df <- collapse4love(filtered_data = selection4counting.df,
+                                    selection_filter = input$selected_candidates)
+    #coolwaiter$hide()
+    
+    # Running ggplot
+    mentions.plot <- ggplot(data4plotly.df, aes(x = day, group=1)) +
+      geom_line(aes(y = , color = )) +
+      theme_bw() +
+      labs(title = "Mentions timeline per candidate",
+           x = NULL, 
+           y = "Mentions") +
+      theme(panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            axis.line = element_line(colour = "black"),
+            legend.position = "bottom",
+            text = element_text(size = 18, family = "Ledger"),
+            plot.title = element_text(size = 22),
+            plot.subtitle = element_text(size = 20, face = "italic"),
+            plot.caption = element_text(vjust = -0.5, hjust = 1, size = 14))
+    
+    ggplotly(mentions.plot, dynamicTicks = T) %>%
+      layout(hovermode = "x") %>%
+      config(displaylogo = F)
+  })
+  
+  # Assigning plotly to output 
+  output$mentions <- renderPlotly({
+    mentions.ptly()
+  })
+  
 }
 
 
 shiny::shinyApp(ui, server)
-
