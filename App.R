@@ -7,7 +7,7 @@
 ##
 ## Creation date:     December 5th, 2021
 ##
-## This version:      December 16th, 2021
+## This version:      December 22th, 2021
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ##
@@ -36,6 +36,7 @@ load("twitter_data4dash.RData")
 ##                1.  Dashboard UI                                                                          ----
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 
 ## 1.1 Dashboard header ========================================================================================
 header <- dashboardHeader(
@@ -91,17 +92,23 @@ body <- dashboardBody(
       fluidRow(
         box(title = "Filters",
             width = 4,
-            height = 500,
+            height = 550,
+            materialSwitch(
+              inputId = "tagsFilter",
+              label = "Remove tags from data?", 
+              value = T,
+              right = T,
+              status = "success"),
             multiInput(
-              inputId = "selected_candidates",
+              inputId = "selected_candidates.wcd",
               label = "Candidates:",
               choices = NULL,
               choiceNames = as.list(names(candidates.ls)),
               choiceValues = candidates.ls %>%  map_chr(2)),
-            dateRangeInput("date_range",
+            dateRangeInput("date_range.wcd",
                            label = h3("Date range"),
                            start = "2021-11-17",
-                           min   = "2021-12-08",
+                           min   = "2021-11-17",
                            end   = Sys.Date()-2,
                            max   = Sys.Date()-2),
             actionBttn(
@@ -111,7 +118,7 @@ body <- dashboardBody(
               color = "success",
               size  =  "sm")),
         box(wordcloud2Output("wordcloud"),
-          height = 500,
+          height = 550,
             width = 8)
       )
     ),
@@ -122,19 +129,24 @@ body <- dashboardBody(
       fluidRow(
         box(title = "Filters",
             width = 4,
-            height = 500,
-            multiInput(
-              inputId = "selected_candidates",
-              label = "Candidates:",
-              choices = NULL,
-              choiceNames = as.list(names(candidates.ls)),
-              choiceValues = candidates.ls %>%  map_chr(2)),
-            dateRangeInput("date_range2",
-                           label = h3("Date range"),
-                           start = "2021-11-17",
-                           min   = "2021-11-17",
-                           end   = Sys.Date()-2,
-                           max   = Sys.Date()-2),
+            height = 400,
+            pickerInput(
+              inputId = "selected_candidate.mnts",
+              label = "Candidate:", 
+              choices = candidates.ls %>%  map_chr(2),
+              options = pickerOptions(
+                actionsBox = T,
+                liveSearch = T)),
+            pickerInput(
+              inputId = "comparison_candidates.mnts",
+              label = "Compare with:", 
+              choices = candidates.ls %>% map_chr(2),
+              multiple = T,
+              options = pickerOptions(
+                liveSearch = T,
+                size = 6,
+                maxOptions = 4,
+                maxOptionsText = "A maximum of four options are allowed")),
             actionBttn(
               inputId = "submit_mentions",
               label = "Submit",
@@ -142,8 +154,35 @@ body <- dashboardBody(
               color = "success",
               size  =  "sm")),
         box(plotlyOutput("mentions"),
-            height = 500,
+            height = 450,
             width = 8)
+      ),
+      fluidRow(
+        box(
+          tags$head(
+            tags$script(async = NA, src = "https://platform.twitter.com/widgets.js")
+          ),
+          title = "Most popular tweet from candidate",
+          #uiOutput("most_pop.mnts"),
+          width = 6,
+          height = 800),
+        box(
+          tags$head(
+            tags$script(async = NA, src = "https://platform.twitter.com/widgets.js")
+          ),
+          title = "Most popular tweet:",
+          uiOutput("most_fav.mnts"),
+          width = 3,
+          height = 800),
+        
+        box(
+          tags$head(
+            tags$script(async = NA, src = "https://platform.twitter.com/widgets.js")
+          ),
+          title = "Tweet with the most rets:",
+          uiOutput("most_rtw.mnts"),
+          width = 3,
+          height = 800)
       )
     )
   )
@@ -163,19 +202,25 @@ ui <- dashboardPage(header, sidebar, body,
 
 
 ## 2.1 Filter: Defining function that will filter the data
-filter4love <- function(selection_filter, dates_filter){
+filter4Server <- function(selection_filter, dates_filter = NULL){
   
   # Defining filtered data
   selection.here <- selection_filter
-  dates.here     <- dates_filter
-  filtered_data <- master_data.df %>%
-    filter(str_detect(.data$text, regex(paste(selection.here, collapse = "|"))) &
-             between(as.Date(.data$created_at), dates.here[1], dates.here[2]))
-}
+  if (is.null(dates_filter) == T) {
+    filtered_data <- master_data.df %>%
+      filter(str_detect(.data$text, regex(paste(selection.here, collapse = "|"))))
+  } else {
+    dates.here     <- dates_filter
+    filtered_data <- master_data.df %>%
+      filter(str_detect(.data$text, regex(paste(selection.here, collapse = "|"))) &
+               between(as.Date(.data$created_at), dates.here[1], dates.here[2]))
+  }
   
+}
+
 ## 2.2 Wordcloud: Defining function that will clean the data and produce a word count
 
-counting4love <- function(filtered_data){
+counting4Server <- function(filtered_data, tags){
   
   # Tokenizing text and removing stop words
   twitter_tokenized.df <- filtered_data %>%
@@ -207,12 +252,13 @@ counting4love <- function(filtered_data){
   keywords <- paste(candidates_query1, candidates_query2, parties_query1, parties_query2, sep = " ") %>%
     str_replace_all(" OR ", "|")
   wcount_flt.df <- wcount_raw.df %>%    # Removing keywords used to extract tweets
-    filter(!(str_detect(words, regex(keywords, ignore_case = T))))
+    filter(!(str_detect(words, regex(keywords, ignore_case = T)))) %>%
+    { if (tags == TRUE) filter(.,!str_detect(words, "^@")) else . }
 }
 
-## 2.2 Mentions per candidate: Defining a function that will collapse the data
+## 2.2 Mentions per candidate: Defining a function that will collapse the data to use in mentions
 
-collapse4love <- function(filtered_data, selection_filter){
+collapse4Server <- function(filtered_data, selection_filter){
   
   selection.here <- paste0("filter_", selection_filter)
   mentions.df <- filtered_data %>%
@@ -226,11 +272,6 @@ collapse4love <- function(filtered_data, selection_filter){
     pivot_longer(!day, 
                  names_to = c(".value", "candidate"),
                  names_sep = "_")
-  
-  
-  
-  
-  
 }
 
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -241,7 +282,7 @@ collapse4love <- function(filtered_data, selection_filter){
 
 set.seed(31478)
 
-server <- function(input, output){
+server <- function(input, output, session){
   
   # Defining spinner on loading
   coolwaiter <- Waiter$new(id = "waiter-content",
@@ -259,9 +300,10 @@ server <- function(input, output){
       
     # Applying cleaning function (waiter needed)
     coolwaiter$show()
-    selection4counting.df <- filter4love(selection_filter = input$selected_candidates, 
-                                         dates_filter     = input$date_range)
-    data4wordcloud.df <- counting4love(filtered_data = selection4counting.df)
+    selection4counting.df <- filter4Server(selection_filter = input$selected_candidates.wcd, 
+                                           dates_filter     = input$date_range.wcd)
+    data4wordcloud.df <- counting4Server(filtered_data = selection4counting.df,
+                                         tags = input$tagsFilter)
     coolwaiter$hide()
     
     # Running wordcloud
@@ -279,42 +321,91 @@ server <- function(input, output){
   
   ## 3.2 Mentions Panel ========================================================================================
   
+  # Reactive comparison list
+  observeEvent(input$selected_candidate.mnts, {
+    updatePickerInput(session = session,
+                      inputId = "comparison_candidates.mnts",
+                      choices = (candidates.ls %>% 
+                                   map_chr(2))[- which((candidates.ls %>% map_chr(2)) == "galan")],)
+  })
+  
+  
+  
   # Creating mentions plot
   mentions.ptly <- eventReactive(input$submit_mentions, {
     
     # Applying cleaning function (waiter needed)
-    #coolwaiter$show()
-    selection4counting.df <- filter4love(selection_filter = input$selected_candidates, 
-                                         dates_filter     = input$date_range)
-    data4plotly.df <- collapse4love(filtered_data = selection4counting.df,
-                                    selection_filter = input$selected_candidates)
-    #coolwaiter$hide()
+    coolwaiter$show()
+    selection4counting.df <- filter4Server(selection_filter = c(input$selected_candidate.mnts, 
+                                                                input$comparison_candidates.mnts), 
+                                           dates_filter     = NULL)
+    data4plotly.df <- collapse4Server(filtered_data    = selection4counting.df,
+                                      selection_filter = c(input$selected_candidate.mnts, 
+                                                           input$comparison_candidates.mnts))
     
     # Running ggplot
     mentions.plot <- ggplot(data4plotly.df, aes(x = day, group=1)) +
-      geom_line(aes(y = , color = )) +
+      geom_line(aes(y = sum, color = candidate)) +
       theme_bw() +
-      labs(title = "Mentions timeline per candidate",
+      labs(title = "Timeline per Candidate",
            x = NULL, 
            y = "Mentions") +
       theme(panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
             panel.border = element_blank(),
             axis.line = element_line(colour = "black"),
-            legend.position = "bottom",
+            legend.position = "top",
             text = element_text(size = 18, family = "Ledger"),
             plot.title = element_text(size = 22),
             plot.subtitle = element_text(size = 20, face = "italic"),
             plot.caption = element_text(vjust = -0.5, hjust = 1, size = 14))
     
+    coolwaiter$hide()
+    
+    # Converting to plotly element
     ggplotly(mentions.plot, dynamicTicks = T) %>%
+      rangeslider() %>%
       layout(hovermode = "x") %>%
       config(displaylogo = F)
+    
   })
   
   # Assigning plotly to output 
   output$mentions <- renderPlotly({
     mentions.ptly()
+  })
+  
+  # Filtering data for tweet boxes
+  url4tabs.mnts <- eventReactive(input$submit_mentions, {
+    selection4counting.df <- filter4Server(selection_filter = input$selected_candidate.mnts,
+                                           dates_filter     = NULL)
+  })
+  
+  # Assigning tweets to outputs
+  output$most_fav.mnts <- renderUI({
+    most_rtw.mnts <- url4tabs.mnts() %>%
+      slice_max(favorite_count, n = 1, with_ties = F) %>%
+      pull(status_id)
+    url_most_rtw.mnts <- lookup_tweets(most_rtw.mnts)["status_url"]
+    
+    tagList(
+      tags$blockquote(class = "twitter-tweet",
+                      tags$a(href = url_most_rtw.mnts)),
+      tags$script('twttr.widgets.load(document.getElementById("tweet"));')
+    )
+  })
+  
+  output$most_rtw.mnts <- renderUI({
+    most_rtw.mnts <- url4tabs.mnts() %>%
+      slice_max(retweet_count, n = 1, with_ties = F) %>%
+      pull(status_id)
+    url_most_rtw.mnts <- lookup_tweets(most_rtw.mnts)["status_url"]
+    
+    tagList(
+      tags$blockquote(class = "twitter-tweet",
+                      tags$a(href = url_most_rtw.mnts)),
+      tags$script('twttr.widgets.load(document.getElementById("tweet"));')
+    )
   })
   
 }
