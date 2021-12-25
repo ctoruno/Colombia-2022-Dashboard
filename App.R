@@ -30,173 +30,9 @@ load("twitter_data4dash.RData")
 
 # Notes: 
 
-
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ##
-##                1.  Dashboard UI                                                                          ----
-##
-## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-## 1.1 Dashboard header ========================================================================================
-header <- dashboardHeader(
-  title = "Colombia 2022: A Twitter companion",
-  dropdownMenu(type = "notifications",
-               icon = icon("exclamation-triangle"),
-               notificationItem(
-                 text = paste0("Last successful Twitter extraction: ", batches.df$Date[1]),
-                 icon("calendar-alt"))
-               )
-)
-
-## 1.2 Dashboard sidebar =======================================================================================
-sidebar <- dashboardSidebar(
-  sidebarMenu(
-    menuItem("Overview", 
-             tabName = "overview", icon = icon("dharmachakra")),
-    menuItem("Wordclouds",
-             tabName = "wordclouds", icon = icon("cloud")),
-    menuItem("Mentions per candidate",
-             tabName = "mentions", icon = icon("chart-line")),
-    menuItem("Top hashtags",
-             tabName = "hashtags", icon = icon("clipboard")),
-    menuItem("Sentiment trends",
-             tabName = "dashboard", icon = icon("comment-dots")),
-    menuItem("Methodology",
-             tabName = "methodology", icon = icon("book")),
-    menuItem("About",
-             tabName = "about", icon = icon("chess"))
-  )
-)
-
-## 1.3 Dashboard body ==========================================================================================
-
-# JavaScript to add an id to the <section> tag so we can overlay waiter on top of it
-# Thanks to John Coene for the explanation (https://waiter.john-coene.com/#/integrations#shinydashboard)
-contentPanel <- "
-$( document ).ready(function() {
-  var section = document.getElementsByClassName('content');
-  section[0].setAttribute('id', 'waiter-content');
-});"
-
-body <- dashboardBody(
-  tags$head(
-    tags$script(contentPanel)
-  ),
-  use_waiter(),
-  tabItems(
-
-    # Wordclouds
-    tabItem(
-      tabName = "wordclouds",
-      fluidRow(
-        box(title = "Filters",
-            width = 4,
-            height = 550,
-            materialSwitch(
-              inputId = "tagsFilter",
-              label = "Remove tags from data?", 
-              value = T,
-              right = T,
-              status = "success"),
-            multiInput(
-              inputId = "selected_candidates.wcd",
-              label = "Candidates:",
-              choices = NULL,
-              choiceNames = as.list(names(candidates.ls)),
-              choiceValues = candidates.ls %>%  map_chr(2)),
-            dateRangeInput("date_range.wcd",
-                           label = h3("Date range"),
-                           start = "2021-11-17",
-                           min   = "2021-11-17",
-                           end   = Sys.Date()-2,
-                           max   = Sys.Date()-2),
-            actionBttn(
-              inputId = "submit_wordcloud",
-              label = "Submit",
-              style = "unite", 
-              color = "success",
-              size  =  "sm")),
-        box(wordcloud2Output("wordcloud"),
-          height = 550,
-            width = 8)
-      )
-    ),
-    
-    # Mentions per candidate
-    tabItem(
-      tabName = "mentions",
-      fluidRow(
-        box(title = "Filters",
-            width = 4,
-            height = 400,
-            pickerInput(
-              inputId = "selected_candidate.mnts",
-              label = "Candidate:", 
-              choices = candidates.ls %>%  map_chr(2),
-              options = pickerOptions(
-                actionsBox = T,
-                liveSearch = T)),
-            pickerInput(
-              inputId = "comparison_candidates.mnts",
-              label = "Compare with:", 
-              choices = candidates.ls %>% map_chr(2),
-              multiple = T,
-              options = pickerOptions(
-                liveSearch = T,
-                size = 6,
-                maxOptions = 4,
-                maxOptionsText = "A maximum of four options are allowed")),
-            actionBttn(
-              inputId = "submit_mentions",
-              label = "Submit",
-              style = "unite",
-              color = "success",
-              size  =  "sm")),
-        box(plotlyOutput("mentions"),
-            height = 450,
-            width = 8)
-      ),
-      fluidRow(
-        box(
-          tags$head(
-            tags$script(async = NA, src = "https://platform.twitter.com/widgets.js")
-          ),
-          title = "Most popular tweet from candidate",
-          #uiOutput("most_pop.mnts"),
-          width = 6,
-          height = 800),
-        box(
-          tags$head(
-            tags$script(async = NA, src = "https://platform.twitter.com/widgets.js")
-          ),
-          title = "Most popular tweet:",
-          uiOutput("most_fav.mnts"),
-          width = 3,
-          height = 800),
-        
-        box(
-          tags$head(
-            tags$script(async = NA, src = "https://platform.twitter.com/widgets.js")
-          ),
-          title = "Tweet with the most rets:",
-          uiOutput("most_rtw.mnts"),
-          width = 3,
-          height = 800)
-      )
-    )
-  )
-)
-
-## 1.4 Back front ==============================================================================================
-
-ui <- dashboardPage(header, sidebar, body,
-                    skin = "green")
-
-
-## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-##
-##                2.  Defining Functions                                                                    ----
+##                0.  Defining Functions                                                                    ----
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -273,6 +109,169 @@ collapse4Server <- function(filtered_data, selection_filter){
                  names_to = c(".value", "candidate"),
                  names_sep = "_")
 }
+
+## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+##
+##                2.  Dashboard UI                                                                          ----
+##
+## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+## 2.1 Dashboard header ========================================================================================
+header <- dashboardHeader(
+  title = "Colombia 2022: A Twitter companion",
+  dropdownMenu(type = "notifications",
+               icon = icon("exclamation-triangle"),
+               notificationItem(
+                 text = paste0("Last successful Twitter extraction: ", batches.df$Date[1]),
+                 icon("calendar-alt"))
+               )
+)
+
+## 2.2 Dashboard sidebar =======================================================================================
+sidebar <- dashboardSidebar(
+  sidebarMenu(
+    menuItem("Overview", 
+             tabName = "overview", icon = icon("dharmachakra")),
+    menuItem("Wordclouds",
+             tabName = "wordclouds", icon = icon("cloud")),
+    menuItem("Mentions per candidate",
+             tabName = "mentions", icon = icon("chart-line")),
+    menuItem("Top hashtags",
+             tabName = "hashtags", icon = icon("clipboard")),
+    menuItem("Sentiment trends",
+             tabName = "dashboard", icon = icon("comment-dots")),
+    menuItem("Methodology",
+             tabName = "methodology", icon = icon("book")),
+    menuItem("About",
+             tabName = "about", icon = icon("chess"))
+  )
+)
+
+## 2.3 Dashboard body ==========================================================================================
+
+# JavaScript to add an id to the <section> tag so we can overlay waiter on top of it
+# Thanks to John Coene for the explanation (https://waiter.john-coene.com/#/integrations#shinydashboard)
+contentPanel <- "
+$( document ).ready(function() {
+  var section = document.getElementsByClassName('content');
+  section[0].setAttribute('id', 'waiter-content');
+});"
+
+body <- dashboardBody(
+  tags$head(
+    tags$script(contentPanel)
+  ),
+  use_waiter(),
+  tabItems(
+
+    # Wordclouds
+    tabItem(
+      tabName = "wordclouds",
+      fluidRow(
+        box(title = "Filters",
+            width = 4,
+            height = 550,
+            materialSwitch(
+              inputId = "tagsFilter",
+              label = "Remove tags from data?", 
+              value = T,
+              right = T,
+              status = "success"),
+            multiInput(
+              inputId = "selected_candidates.wcd",
+              label = "Candidates:",
+              choices = NULL,
+              choiceNames = as.list(names(candidates.ls)),
+              choiceValues = candidates.ls %>%  map_chr(2)),
+            dateRangeInput("date_range.wcd",
+                           label = h3("Date range"),
+                           start = "2021-11-17",
+                           min   = "2021-11-17",
+                           end   = Sys.Date()-2,
+                           max   = Sys.Date()-2),
+            actionBttn(
+              inputId = "submit_wordcloud",
+              label = "Submit",
+              style = "unite", 
+              color = "success",
+              size  =  "sm")),
+        box(wordcloud2Output("wordcloud"),
+          height = 550,
+            width = 8)
+      )
+    ),
+    
+    # Mentions per candidate
+    tabItem(
+      tabName = "mentions",
+      fluidRow(
+        box(title = "Filters",
+            width = 4,
+            height = 450,
+            pickerInput(
+              inputId = "selected_candidate.mnts",
+              label = "Candidate:", 
+              choices = candidates.ls %>%  map_chr(2),
+              options = pickerOptions(
+                actionsBox = T,
+                size = 6,
+                liveSearch = T)),
+            pickerInput(
+              inputId = "comparison_candidates.mnts",
+              label = "Compare with:", 
+              choices = candidates.ls %>% map_chr(2),
+              multiple = T,
+              options = pickerOptions(
+                liveSearch = T,
+                size = 6,
+                maxOptions = 4,
+                maxOptionsText = "A maximum of four options are allowed")),
+            actionBttn(
+              inputId = "submit_mentions",
+              label = "Submit",
+              style = "unite",
+              color = "success",
+              size  =  "sm")),
+        box(plotlyOutput("mentions"),
+            height = 450,
+            width = 8)
+      ),
+      fluidRow(
+        box(
+          tags$head(
+            tags$script(async = NA, src = "https://platform.twitter.com/widgets.js")
+          ),
+          title = "Most popular tweet from candidate",
+          #uiOutput("most_pop.mnts"),
+          width = 6,
+          height = 800),
+        box(
+          tags$head(
+            tags$script(async = NA, src = "https://platform.twitter.com/widgets.js")
+          ),
+          title = "Most popular tweet:",
+          uiOutput("most_fav.mnts"),
+          width = 3,
+          height = 800),
+        
+        box(
+          tags$head(
+            tags$script(async = NA, src = "https://platform.twitter.com/widgets.js")
+          ),
+          title = "Tweet with the most rets:",
+          uiOutput("most_rtw.mnts"),
+          width = 3,
+          height = 800)
+      )
+    )
+  )
+)
+
+## 2.4 Back front ==============================================================================================
+
+ui <- dashboardPage(header, sidebar, body,
+                    skin = "green")
 
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ##
