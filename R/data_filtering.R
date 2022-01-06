@@ -54,9 +54,21 @@ filtering_server <- function(id, data, glob){
               # I just created this give a glob input for eventReactive
         
         # Filtering data
-        selection <- c(glob$main_candidate, glob$sec_candidates)
-        filtered_data <- dataset %>%
-          filter(str_detect(.data$text, regex(paste(selection, collapse = "|"))))
+        candidate <- glob$main_candidate
+        others    <- glob$sec_candidates
+        
+        if (is.null(others)) {
+          filtered_data <- dataset %>%
+            mutate(candidate = if_else(str_detect(.data$text, candidate), 1,0)) %>%
+            filter(candidate == 1)
+        } else {
+          filtered_data <- dataset %>%
+            mutate(candidate = if_else(str_detect(.data$text, candidate),1,0),
+                   comparison = if_else(str_detect(.data$text, others), 1,0)) %>%
+            filter(candidate == 1 | comparison == 1)
+        }
+        
+        return(filtered_data)
         
       })
     }

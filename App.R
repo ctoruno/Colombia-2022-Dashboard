@@ -66,15 +66,15 @@ body <- dashboardBody(
       tabName = "speech",
       fluidRow(
         shinydashboard::box(title = "Filters",
-            width = 3,
-            height = 450,
-            tagsFilter_UI("speech_tags"),
-            candidates_input(id = "speech_candidate"),
-            submit_input(id = "speech_filter")),
+                            width = 3,
+                            height = 450,
+                            tagsFilter_UI("speech_tags"),
+                            candidates_input(id = "speech_candidate"),
+                            submit_input(id = "speech_filter")),
         shinydashboard::box(title = "Overview",
-            width = 9,
-            height = 450
-            )
+                            width = 9,
+                            height = 450
+        )
       ),
       fluidRow(
         column(
@@ -101,13 +101,16 @@ body <- dashboardBody(
               solidHeader = F, 
               collapsible = T,
               collapsed = T,
-              DTOutput("speech_words", height = 30)),
+              DTOutput("speech_words_main", height = 30)
+          ),
           box(title = "Most used terms: comparison candidates",
               width = NULL,
               height = 400,
               solidHeader = F, 
               collapsible = T,
-              collapsed = T)
+              collapsed = T,
+              DTOutput("speech_words_com", height = 30)
+          )
         ),
         box(title = "Wordcloud",
             width = 8,
@@ -168,12 +171,13 @@ appSERVER <- function(input, output, session) {
   
   # Applying freq analysis module
   freqoutputs4speech <- reactive({
-    frequency_server(id = "speech_tags", filtered_data = data2analyze)
+    frequency_server(id = "speech_tags", filtered_data = data2analyze, glob = glob)
     })
   
-  output$speech_wordcloud <- renderWordcloud2(freqoutputs4speech()[[1]])
-  output$speech_words <- renderDT(freqoutputs4speech()[[2]])
-  output$speech_toph <- renderDT(freqoutputs4speech()[[3]])
+  output$speech_wordcloud  <- renderWordcloud2(freqoutputs4speech()[[1]])
+  output$speech_words_main <- renderDT(freqoutputs4speech()[[2]])
+  output$speech_words_com  <- renderDT(freqoutputs4speech()[[3]])
+  output$speech_toph       <- renderDT(freqoutputs4speech()[[4]])
   
   # Value boxes module
   vboxes_values <- valueBox_SERVER(id = "speech_vboxes", glob = glob)
