@@ -7,7 +7,7 @@
 ##
 ## Creation date:     December 25th, 2021
 ##
-## This version:      December 31st, 2021
+## This version:      January 19th, 2022
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -43,29 +43,46 @@ filtering_server <- function(id, data, glob){
     function(input, output, session){
       eventReactive(input$submit, {
         
+        glob$submitted <- paste(TRUE, glob$main_candidate, sep = "_")
+            # I just created this in order to give a glob input for eventReactives in other modules
+        
+        
         # Which data are we gonna filter?
         if (data == "social"){
-          dataset <- master_data.df
+          
+          # Defining candidates variables
+          selected_candidate <- glob$main_candidate
+          others_selected    <- glob$sec_candidates
+          
+          # Filtering data
+          if (is.null(others_selected)) {
+            filtered_data <- master_data.df %>%
+              mutate(candidate = if_else(str_detect(text, selected_candidate), 1, 0)) %>%
+              filter(candidate == 1)
+          } else {
+            filtered_data <- master_data.df %>%
+              mutate(candidate = if_else(str_detect(text, selected_candidate), 1, 0),
+                     comparison = if_else(str_detect(text, others_selected), 1, 0)) %>%
+              filter(candidate == 1 | comparison == 1)
+          }
+          
         } else {
-          dataset <- timelines.df
-        }
-        
-        glob$submitted <- paste(TRUE, glob$main_candidate, sep = "_")
-              # I just created this give a glob input for eventReactive
-        
-        # Filtering data
-        candidate <- glob$main_candidate
-        others    <- glob$sec_candidates
-        
-        if (is.null(others)) {
-          filtered_data <- dataset %>%
-            mutate(candidate = if_else(str_detect(.data$text, candidate), 1,0)) %>%
-            filter(candidate == 1)
-        } else {
-          filtered_data <- dataset %>%
-            mutate(candidate = if_else(str_detect(.data$text, candidate),1,0),
-                   comparison = if_else(str_detect(.data$text, others), 1,0)) %>%
-            filter(candidate == 1 | comparison == 1)
+          
+          # Defining candidates variables
+          selected_candidate <- glob$main_candidate %>% str_sub(2)
+          others_selected    <- glob$sec_candidates %>% str_sub(2)
+          
+          # Filtering data
+          if (is.null(others_selected)) {
+            filtered_data <- timelines.df %>%
+              mutate(candidate = if_else(screen_name %in% selected_candidate, 1, 0)) %>%
+              filter(candidate == 1 & is_retweet == F)
+          } else {
+            filtered_data <- timelines.df %>%
+              mutate(candidate = if_else(screen_name %in% selected_candidate, 1, 0),
+                     comparison = if_else(screen_name %in% others_selected, 1, 0)) %>%
+              filter((candidate == 1 | comparison == 1) & is_retweet == F)
+          }
         }
         
         return(filtered_data)

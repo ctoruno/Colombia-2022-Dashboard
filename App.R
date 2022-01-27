@@ -7,13 +7,13 @@
 ##
 ## Creation date:     December 25th, 2021
 ##
-## This version:      December 31st, 2021
+## This version:      January 26th, 2022
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 # Required packages
-lapply(list("rtweet", "haven", "qdap", "tm", "syuzhet", "SnowballC", "wesanderson",
+lapply(list("rtweet", "haven", "qdap", "tm", "topicmodels", "syuzhet", "SnowballC", "wesanderson",
             "shiny", "shinydashboard", "shinydashboardPlus", "shinythemes", "shinyWidgets", "waiter",
             "plotly", "wordcloud2", "DT", "tidytext", "tidyverse", "magrittr"),
        library, character.only = T)
@@ -68,75 +68,99 @@ body <- dashboardBody(
         shinydashboard::box(title = "Filters",
                             width = 3,
                             height = 450,
+                            status = "warning", 
+                            solidHeader = F,
                             tagsFilter_UI("speech_tags"),
                             candidates_input(id = "speech_candidate"),
                             submit_input(id = "speech_filter")),
         shinydashboard::box(title = "Overview",
                             width = 9,
-                            height = 450
+                            height = 450,
+                            status = "warning", 
+                            solidHeader = F
         )
       ),
       fluidRow(
-        column(
-          width = 9,
-          shinydashboard::box(title = "Tweets timeline",
-                              width = NULL,
-                              height = 350
-          ) 
-        ),
-        column(
-          width = 3,
-          # valueBox_UI("speech_vboxes"),
-          valueBoxOutput("user_since", width = NULL),
-          valueBoxOutput("speech_tweets_count", width = NULL),
-          valueBoxOutput("followers_tun", width = NULL)
+        valueBoxOutput("user_since", width = 4),
+        valueBoxOutput("speech_tweets_count", width = 4),
+        valueBoxOutput("followers_tun", width = 4)
+      ),
+      fluidRow(
+        shinydashboard::box(title = "Tweets timeline",
+                            width = 12,
+                            height = 500,
+                            status = "warning", 
+                            solidHeader = F,
+                            plotlyOutput("timeline_plot")
         )
       ),
       fluidRow(
-        column(
-          width = 4,
-          box(title = "Most used terms: candidate",
-              width = NULL,
-              height = 400,
-              solidHeader = F, 
-              collapsible = T,
-              collapsed = T,
-              DTOutput("speech_words_main", height = 30)
+          box(title = "Most used terms",
+              width = 5,
+              height = 600,
+              status = "warning", 
+              solidHeader = F,
+              accordion(
+                id = "acc",
+                accordionItem(
+                  title = "Selected candidate",
+                  collapsed = F,
+                  width = 4,
+                  DTOutput("speech_words_main", width = "100%", height = 450)
+                ),
+                accordionItem(
+                  title = "Comparison candidates",
+                  collapsed = T,
+                  DTOutput("speech_words_com", height = 450)
+                ),
+                accordionItem(
+                  title = "Top used hashtags: candidate",
+                  collapsed = T,
+                  DTOutput("speech_toph", height = 450)
+                )
+              )
           ),
-          box(title = "Most used terms: comparison candidates",
-              width = NULL,
-              height = 400,
-              solidHeader = F, 
-              collapsible = T,
-              collapsed = T,
-              DTOutput("speech_words_com", height = 30)
-          )
-        ),
         box(title = "Wordcloud",
-            width = 8,
-            height = 700,
+            width = 7,
+            height = 600,
+            status = "warning",
             solidHeader = F, 
             collapsible = T,
-            collapsed = T,
-            wordcloud2Output("speech_wordcloud", height = "600px")
+            collapsed = F,
+            wordcloud2Output("speech_wordcloud", 
+                             width = "100%", 
+                             height = "600px")
         )
       ),
       fluidRow(
-        box(title = "Topic Modelling",
-            width = 8,
-            height = 400,
-            solidHeader = F, 
-            collapsible = T,
-            collapsed = T
-        ),
-        box(title = "Top used hashtags: candidate",
-            width = 4,
-            height = 450,
-            solidHeader = F, 
-            collapsible = T,
-            collapsed = T,
-            DTOutput("speech_toph")
+        box(
+          title = "Topic Modelling",
+          width = 12,
+          height = 500,
+          status = "warning", 
+          solidHeader = F, 
+          collapsible = T,
+          collapsed = F,
+          sidebar = boxSidebar(
+            id = "tmodels_sidebar",
+            width = 25,
+            tmodelling_UI("tmodels"),
+            verbatimTextOutput("tmodels_fvalues")
+          ),
+          DTOutput("tmodels_words")
         )
+      ),
+      fluidRow(h4(strong("Most popular tweets")),
+               tags$head(tags$script(async = NA, src = "https://platform.twitter.com/widgets.js")),
+               column(width = 4,
+                      height = 500,
+                      uiOutput("speech_pop1_widget")),
+               column(width = 4,
+                      height = 500,
+                      uiOutput("speech_pop2_widget")),
+               column(width = 4,
+                      height = 500,
+                      uiOutput("speech_pop3_widget"))
       )
     )
     
@@ -165,23 +189,38 @@ appSERVER <- function(input, output, session) {
 
 ## 2.1 Speech Panel  ===========================================================================================
   
-  # Filtering data modules
+  # Applying a module that updates the comparison candidates inputs according to the main candidate input
   candidates_server(id = "speech_candidate", glob = glob)
+  
+  # Filtering data using the data_filtering module
   data2analyze <- filtering_server(id = "speech_filter", data = "speech", glob = glob)
   
-  # Applying freq analysis module
+  # Applying timeline module
+  timeline4speech <- timeline_server("speech_timeline",
+                                     filtered_data = data2analyze,
+                                     panel = "speech",
+                                     glob = glob)
+  
+  # Assigning timeline to outputs
+  output$timeline_plot <- renderPlotly(timeline4speech())
+  
+  # Applying the freq analysis module
   freqoutputs4speech <- reactive({
-    frequency_server(id = "speech_tags", filtered_data = data2analyze, glob = glob)
+    frequency_server(id = "speech_tags", 
+                     filtered_data = data2analyze, 
+                     glob = glob)
     })
   
+  # Assigning the freq analysis results to outputs
   output$speech_wordcloud  <- renderWordcloud2(freqoutputs4speech()[[1]])
   output$speech_words_main <- renderDT(freqoutputs4speech()[[2]])
   output$speech_words_com  <- renderDT(freqoutputs4speech()[[3]])
   output$speech_toph       <- renderDT(freqoutputs4speech()[[4]])
   
-  # Value boxes module
+  # Applying the value boxes module
   vboxes_values <- valueBox_SERVER(id = "speech_vboxes", glob = glob)
-    
+  
+  # Assigning the resulting value boxes to outputs
   output$user_since <- renderValueBox({
     valueBox(
       subtitle = "Using Twitter since:",
@@ -207,7 +246,52 @@ appSERVER <- function(input, output, session) {
     )
   })
   
+  # Generating tweet widgets using the widgets module
+  popular_urls <- popular_tweets_UI("speech_widgets",
+                                    panel = "speech",
+                                    filtered_data = data2analyze,
+                                    glob = glob)
   
+  # Assigning resulting widgets to outputs
+  output$speech_pop1_widget <- renderUI({
+    tagList(
+      tags$blockquote(class = "twitter-tweet",
+                      tags$a(href = popular_urls()[[1]])),
+      tags$script('twttr.widgets.load(document.getElementById("tweet"));'),
+    )
+  })
+
+  output$speech_pop2_widget <- renderUI({
+    tagList(
+      tags$blockquote(class = "twitter-tweet",
+                      tags$a(href = popular_urls()[[2]])),
+      tags$script('twttr.widgets.load(document.getElementById("tweet"));')
+    )
+  })
+
+  output$speech_pop3_widget <- renderUI({
+    tagList(
+      tags$blockquote(class = "twitter-tweet",
+                      tags$a(href = popular_urls()[[3]])),
+      tags$script('twttr.widgets.load(document.getElementById("tweet"));')
+    )
+  })
+
+  # Applying topic modelling module
+  tokenized_data <- reactive(freqoutputs4speech()[[5]])
+  tmodelling <- tmodelling_SERVER("tmodels",
+                                  tokenized_data = tokenized_data,
+                                  glob = glob)
+  
+  # Assigning resulting topics to outputs
+  output$tmodels_words <- renderDT({
+    datatable(tmodelling()[["Top Words"]])
+  })
+
+  output$tmodels_fvalues <- renderPrint({
+    tmodelling()[["Fit Values"]]
+  })
+
 }
 
 shiny::shinyApp(appUI, appSERVER)

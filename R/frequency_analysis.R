@@ -7,7 +7,7 @@
 ##
 ## Creation date:     December 25th, 2021
 ##
-## This version:      December 31st, 2021
+## This version:      January 25th, 2022
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -37,42 +37,7 @@ tagsFilter_UI <- function(id) {
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# Defining a cleaning function
-data2counts <- function(data, switch) {
-  
-  # Tokenizing text and removing stop words
-  twitter_tokenized.df <- data %>%
-    mutate(text = str_replace_all(tolower(text), c("á" = "a", "é" = "e", "í" = "i",
-                                                   "ó" = "o", "ú|ü" = "u"))) %>%
-    select(1:5) %>%
-    mutate(tweet_id = row_number()) %>%
-    unnest_tokens(words, text, token = "tweets", strip_url = T) %>%
-    anti_join(data.frame(words = stopwords("es")) %>%
-                mutate(words = str_replace_all(words,
-                                               c("á" = "a", "é" = "e", "í" = "i", "ó" = "o", "ú|ü" = "u"))))
-  
-  # Removing custom stop words
-  twitter_tokenized.df <- twitter_tokenized.df %>%      # we remove stopwords in the top-150
-    anti_join(tribble(~words, "ahora", "hacer", "hace", "puede", "mismo", "tan", "señor", "ud", "siempre",
-                      "menos","dice", "debe", "ver", "hoy", "sabe", "van", "quiere", "creo", "ustedes",
-                      "decir", "pues", "cabal", "vamos", "nunca", "claro", "ahi", "jajaja", "jajajaja",
-                      "entonces", "gran", "vez", "da", "toda", "d", "favor", "parte", "quieren", "cada",
-                      "hizo", "hecho", "tener", "dijo", "aqui", "cree", "tal", "parece", "hacen",
-                      "despues", "que", "usted", "solo", "ser", "asi", "va", "años", "habla", "tipo",
-                      "misma", "cosas", "5", "necesita", "alguien", "todas", "aun", "sino", "cosa",
-                      "x", "q", "pais", "colombia"))
-  
-  # Creating word counts
-  wcount_raw.df <- twitter_tokenized.df %>% count(words) %>% arrange(desc(n))
-  keywords <- paste(candidates_query1, candidates_query2, parties_query1, parties_query2, sep = " ") %>%
-    str_replace_all(" OR ", "|")
-  wcount_flt.df <- wcount_raw.df %>%    # Removing keywords used to extract tweets
-    filter(!(str_detect(words, regex(keywords, ignore_case = T)))) %>%
-    { if (switch == T) filter(.,!str_detect(words, "^@")) else . }
-}
-
-
-
+# Defining SERVER function
 frequency_server <- function(id, filtered_data, glob){
   
   moduleServer(
@@ -85,8 +50,9 @@ frequency_server <- function(id, filtered_data, glob){
       
       # Generating selected candidate counts
       main_data.df <- input_data %>% filter(candidate == 1)
-      main_counts.df <- data2counts(data = main_data.df,
-                                    switch = tags_switch)
+      main_counts_raw.df <- data2counts(data = main_data.df,
+                                        switch = tags_switch)
+      main_counts.df <- main_counts_raw.df[[1]]
       
       # Creating wordcloud
       wordcloud <- wordcloud2(main_counts.df[1:200,], size = 0.9,
@@ -95,25 +61,50 @@ frequency_server <- function(id, filtered_data, glob){
                               ellipticity = 0.2, shuffle = F)
 
       # Top words: selected candidate
-      top_words_main <- datatable(main_counts.df %>%
-                                    rename(Mentions = n,
-                                           Words = words))
+      top_words_main <- datatable(
+        main_counts.df %>% 
+          rename(Mentions = n,  Words = words) %>%
+          slice_max(Mentions, n = 30, with_ties = F),
+        options = list(dom = 'tp',
+                       scrollX = T,      # This solves all the columns width issue
+                       autoWidth = T,    # Required to modify columns width
+                       columnDefs = list(list(width = '50px',
+                                              targets = "_all"))
+        )
+      )
 
-      # Top hashtags ussed by selected candidate
-      top_hashtags <- datatable(main_counts.df %>%
-                                  filter(str_detect(words, "^#")) %>%
-                                  rename(Mentions = n,
-                                         Hashtags = words))
+      # Top hashtags used by selected candidate
+      top_hashtags <- datatable(
+        main_counts.df %>% 
+          filter(str_detect(words, "^#")) %>% 
+          rename(Mentions = n, Hashtags = words) %>%
+          slice_max(Mentions, n = 10, with_ties = F),
+        options = list(dom = 't',
+                       scrollX = T,          # This solves all the columns width issue
+                       autoWidth = T,        # Required to modify columns width
+                       columnDefs = list(list(width = '50px',
+                                              targets = "_all"))
+        )
+      )
       
       # Generating comparison candidates counts
       if (!is.null(others)) {
         comparison_data.df <- input_data %>% filter(comparison == 1)
         comparison_counts.df <- data2counts(data = comparison_data.df,
-                                            switch = tags_switch) 
+                                            switch = tags_switch)[[1]] 
         # Top words: comparison candidates
-        top_words_comparison <- datatable(comparison_counts.df %>%
-                                            rename(Mentions = n,
-                                                   Words = words))
+        top_words_comparison <- datatable(
+          comparison_counts.df %>% 
+            rename(Mentions = n, Words = words) %>%
+            slice_max(Mentions, n = 30, with_ties = F),
+          options = list(
+            dom = 'tp',
+            scrollX = T,
+            autoWidth = T,
+            columnDefs = list(list(width = '50px',
+                                   targets = "_all"))
+          )
+        )
       } else {
         top_words_comparison <- datatable(data.frame())
       }
@@ -122,7 +113,8 @@ frequency_server <- function(id, filtered_data, glob){
       list("Wordcloud"              = wordcloud,
            "Top Words - Main"       = top_words_main,
            "Top Words - Comparison" = top_words_comparison,
-           "Top Hashtags"           = top_hashtags)
+           "Top Hashtags"           = top_hashtags,
+           "Tokens for T.Modelling" = main_counts_raw.df[[2]])
       
     }
   )
