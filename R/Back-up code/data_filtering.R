@@ -43,7 +43,7 @@ filtering_server <- function(id, data, glob){
     function(input, output, session){
       eventReactive(input$submit, {
         
-        glob$submitted <- paste(TRUE, glob$main_candidate, sep = "_")
+        glob$submitted <- paste(TRUE, glob$main_candidate, glob$sec_candidates, sep = "_")
             # I just created this in order to give a glob input for eventReactives in other modules
         
         

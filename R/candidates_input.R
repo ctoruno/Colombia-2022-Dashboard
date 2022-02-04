@@ -30,15 +30,12 @@ candidates_input <- function(id){
         size = 6,
         liveSearch = T)),
     pickerInput(
-      inputId = ns("comparison_candidates"),
+      inputId = ns("comparison_candidate"),
       label = "Compare with:", 
-      choices = candidates.ls %>% map_chr(1),
-      multiple = T,
-      options = pickerOptions(
-        liveSearch = T,
-        size = 6,
-        maxOptions = 4,
-        maxOptionsText = "A maximum of four options is allowed"))
+      choices = c("None" = "N/A", candidates.ls %>% map_chr(1)),
+      multiple = F,
+      options = pickerOptions(liveSearch = T,
+                              size = 6))
   )
 }
 
@@ -54,20 +51,21 @@ candidates_server <- function(id, glob){
     id,
     function(input, output, session){
       
+      # Defining selection list
+      selection.ls <- c("None" = "N/A", candidates.ls %>% map_chr(1))
+      
       # Updating selection values
       observeEvent(input$selected_candidate, {
         updatePickerInput(session = session,
-                          inputId = "comparison_candidates",
-                          choices = (candidates.ls %>% 
-                                       map_chr(1))[- which((candidates.ls %>% 
-                                                              map_chr(1)) == input$selected_candidate)])
+                          inputId = "comparison_candidate",
+                          choices = selection.ls[- which(selection.ls == input$selected_candidate)])
         
         # Saving values as globals
         glob$main_candidate <- input$selected_candidate
       })
       
-      observeEvent(input$comparison_candidates, {
-        glob$sec_candidates <- input$comparison_candidates
+      observeEvent(input$comparison_candidate, {
+        glob$comp_candidate <- input$comparison_candidate
       })
     }
   )

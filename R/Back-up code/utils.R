@@ -11,7 +11,15 @@
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# Defining a cleaning function
+
+## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+##
+##                1.  Cleaning function                                                                     ----
+##
+## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# Cleaning function for frequency analysis and topic modelling
+
 data2counts <- function(data, switch) {
   
   # Tokenizing text and removing stop words
@@ -50,7 +58,14 @@ data2counts <- function(data, switch) {
 }
 
 
-# Defining a collapsing function
+## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+##
+##                2.  Collapsing function                                                                     ----
+##
+## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# Defining a collapsing function for timeline plots
+
 collapse4Server <- function(filtered_data, xdata, glob){
   
   # Defining candidates selection

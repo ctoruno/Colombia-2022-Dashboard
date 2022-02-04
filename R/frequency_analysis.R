@@ -7,7 +7,7 @@
 ##
 ## Creation date:     December 25th, 2021
 ##
-## This version:      January 25th, 2022
+## This version:      February 2nd, 2022
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -18,16 +18,38 @@
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-tagsFilter_UI <- function(id) {
+freqTables_output <- function(id) {
   ns <- NS(id)
   tagList(
-    materialSwitch(
-      inputId = ns("tags_filter"),
-      label = "Remove tags from data?", 
-      value = T,
-      right = T,
-      status = "success")
+    accordion(
+      id = ns("acc"),
+      accordionItem(
+        title = "Selected candidate",
+        collapsed = F,
+        width = 4,
+        DTOutput(ns("top_terms_main"), width = "100%", height = 450)
+      ),
+      accordionItem(
+        title = "Comparison candidate",
+        collapsed = T,
+        DTOutput(ns("top_terms_comp"), width = "100%", height = 450)
+      ),
+      accordionItem(
+        title = "Top used hashtags: selected candidate",
+        collapsed = T,
+        DTOutput(ns("top_hashtags"), width = "100%", height = 450)
+      )
     )
+  )
+}
+
+wordclouds_output <- function(id) {
+  ns <- NS(id)
+  tagList(
+    wordcloud2Output(ns("wordcloud"),
+                     width = "100%",
+                     height = "600px")
+  )
 }
 
 
@@ -38,85 +60,79 @@ tagsFilter_UI <- function(id) {
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Defining SERVER function
-frequency_server <- function(id, filtered_data, glob){
+frequency_server <- function(id, panel, glob){
   
   moduleServer(
     id,
     function(input, output, session){
-      
-      input_data  <- filtered_data() 
-      tags_switch <- input$tags_filter
-      others      <- glob$sec_candidates
-      
-      # Generating selected candidate counts
-      main_data.df <- input_data %>% filter(candidate == 1)
-      main_counts_raw.df <- data2counts(data = main_data.df,
-                                        switch = tags_switch)
-      main_counts.df <- main_counts_raw.df[[1]]
-      
-      # Creating wordcloud
-      wordcloud <- wordcloud2(main_counts.df[1:200,], size = 0.9,
-                              color = rep_len(c("DarkRed", "CornflowerBlue", "DarkOrange"),
-                                              nrow(main_counts.df[1:200,])),
-                              ellipticity = 0.2, shuffle = F)
-
-      # Top words: selected candidate
-      top_words_main <- datatable(
-        main_counts.df %>% 
-          rename(Mentions = n,  Words = words) %>%
-          slice_max(Mentions, n = 30, with_ties = F),
-        options = list(dom = 'tp',
-                       scrollX = T,      # This solves all the columns width issue
-                       autoWidth = T,    # Required to modify columns width
-                       columnDefs = list(list(width = '50px',
-                                              targets = "_all"))
-        )
-      )
-
-      # Top hashtags used by selected candidate
-      top_hashtags <- datatable(
-        main_counts.df %>% 
-          filter(str_detect(words, "^#")) %>% 
-          rename(Mentions = n, Hashtags = words) %>%
-          slice_max(Mentions, n = 10, with_ties = F),
-        options = list(dom = 't',
-                       scrollX = T,          # This solves all the columns width issue
-                       autoWidth = T,        # Required to modify columns width
-                       columnDefs = list(list(width = '50px',
-                                              targets = "_all"))
-        )
-      )
-      
-      # Generating comparison candidates counts
-      if (!is.null(others)) {
-        comparison_data.df <- input_data %>% filter(comparison == 1)
-        comparison_counts.df <- data2counts(data = comparison_data.df,
-                                            switch = tags_switch)[[1]] 
-        # Top words: comparison candidates
-        top_words_comparison <- datatable(
-          comparison_counts.df %>% 
-            rename(Mentions = n, Words = words) %>%
-            slice_max(Mentions, n = 30, with_ties = F),
-          options = list(
-            dom = 'tp',
-            scrollX = T,
-            autoWidth = T,
-            columnDefs = list(list(width = '50px',
-                                   targets = "_all"))
+        
+        # Which data frame are we gonna work with?
+        if (panel == "social"){
+          data2analyze <- freq_analysis.ls$`Social Monitoring`
+        } else {
+          data2analyze <- freq_analysis.ls$`Speech Analysis`
+        }
+        
+        # Reactive server
+        data2render.ls <- reactive({
+          
+          # Top terms
+          top_terms1 <- data2analyze$`Top Words` %>%
+            select(starts_with(glob$main_candidate %>% str_sub(2)))
+          
+          top_terms2 <- data2analyze$`Top Words` %>%
+            select(starts_with(glob$comp_candidate %>% str_sub(2)))
+          
+          # Top hashtags
+          top_hashtags <- data2analyze$`Top Hashtags` %>%
+            select(starts_with(glob$main_candidate %>% str_sub(2)))
+          
+          # Output list
+          list("Top Terms1" = top_terms1,
+               "Top Terms2" = top_terms2,
+               "Top Hash"   = top_hashtags)
+          
+        }) %>%
+          bindEvent(glob$submitted())
+        
+        # Rendering wordcloud
+        output$wordcloud <- renderWordcloud2({
+          wordcloud2(data2render.ls()[["Top Terms1"]], size = 0.9,
+                     color = rep_len(c("DarkRed", "CornflowerBlue", "DarkOrange"),
+                                     nrow(data2render.ls()[["Top Terms1"]])),
+                     ellipticity = 0.2, shuffle = F)
+        })
+        
+        # Rendering tables
+        output$top_terms_main <- renderDT({
+          datatable(data2render.ls()[["Top Terms1"]],
+                    options = list(dom = 'tp',
+                                   scrollX = T,      # This solves all the columns width issue
+                                   autoWidth = T,    # Required to modify columns width
+                                   columnDefs = list(list(width = '50px',
+                                                          targets = "_all")))
           )
-        )
-      } else {
-        top_words_comparison <- datatable(data.frame())
-      }
-
-      # Multiple ouput list
-      list("Wordcloud"              = wordcloud,
-           "Top Words - Main"       = top_words_main,
-           "Top Words - Comparison" = top_words_comparison,
-           "Top Hashtags"           = top_hashtags,
-           "Tokens for T.Modelling" = main_counts_raw.df[[2]])
-      
-    }
-  )
+        })
+        
+        output$top_terms_comp <- renderDT({
+          datatable(data2render.ls()[["Top Terms2"]],
+                    options = list(dom = 'tp',
+                                   scrollX = T,      # This solves all the columns width issue
+                                   autoWidth = T,    # Required to modify columns width
+                                   columnDefs = list(list(width = '50px',
+                                                          targets = "_all")))
+          )
+        })
+        
+        output$top_hashtags <- renderDT({
+          datatable(data2render.ls()[["Top Hash"]],
+                    options = list(dom = 't',
+                                   scrollX = T,      # This solves all the columns width issue
+                                   autoWidth = T,    # Required to modify columns width
+                                   columnDefs = list(list(width = '50px',
+                                                          targets = "_all")))
+          )
+        })
+    })
 }     
 
