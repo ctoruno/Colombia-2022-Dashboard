@@ -1,12 +1,73 @@
-.sidebar {
-  color: #FFF;
-  position: fixed;
-  width: 220px;
-  white-space: nowrap;
-  overflow: visible;
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans&display=swap');
+
+h3 {
+  font-family: 'Fira Sans', sans-serif;
+  text-align: center;
+  font-weight: 600;
+  font-size: 200%;
 }
 
-.main-header {
-  position: fixed;
-  width:100%;
+h3 p {
+  font-family: 'Fira Sans', sans-serif;
+  text-align: left;
 }
+
+.skin-blue .main-header .logo {
+  font-family: 'Fira Sans', sans-serif;
+  background-color: #212F3C;
+}
+
+.skin-blue .main-header .logo:hover {
+  font-family: 'Fira Sans', sans-serif;
+  background-color: #212F3C;
+}
+
+.skin-blue .main-header .navbar  {
+  font-family: 'Fira Sans', sans-serif;
+  background-color: #212F3C;
+}   
+
+.skin-blue .main-header .navbar .sidebar-toggle:hover  {
+  font-family: 'Fira Sans', sans-serif;
+  background-color: #212F3C;
+}
+
+.skin-blue .main-sidebar  {
+  font-family: 'Fira Sans', sans-serif;
+  background-color: #212F3C;
+}
+
+.skin-blue .main-sidebar .sidebar .sidebar-menu .active a{
+  font-family: 'Fira Sans', sans-serif;
+  background-color: #212F3C;
+  border-left: 0px solid #062C51;
+}
+
+#sidebarCollapsed {
+  border-top: 5px solid #F4E4E4;
+}
+
+.logo-mini {
+  margin-left : auto;
+  margin-right : auto;
+  position: absolute;
+}
+
+.content {
+  margin-top: 50px;
+}
+
+.bg-olive {
+    background-color: #ECCBAE!important;
+}
+
+.bg-yellow {
+    background-color: #046C9A!important;
+}
+
+.bg-navy {
+    background-color: #D69C4E!important;
+}
+
+                                
+                                

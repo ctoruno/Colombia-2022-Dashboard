@@ -48,8 +48,9 @@ valueBoxes_SERVER <- function(id, glob){
       output$user_since <- renderValueBox({
         valueBox(
           subtitle = "Using Twitter since:",
-          value = format(filtered_info() %>% pull(account_created_at), "%d-%b-%Y"),
-          icon = icon("twitter"),
+          value = tags$p(format(filtered_info() %>% pull(account_created_at), "%d-%b-%Y"), 
+                         style = "font-size: 75%;"),
+          icon = tags$i(class = "fa fa-twitter", style="font-size: 70%"),
           color = "olive"
         )
       })
@@ -57,9 +58,11 @@ valueBoxes_SERVER <- function(id, glob){
       output$tweets_count <- renderValueBox({
         valueBox(
           subtitle = "Tweets posted since June-2021:",
-          value = formatC(filtered_info() %>% pull(tweets_count), 
-                          format="f", big.mark = ",", digits=0),
-          icon = icon("pen-fancy"),
+          value = tags$p(formatC(filtered_info() %>% pull(tweets_count), 
+                                 format="f", big.mark = ",", digits=0),
+                          style = "font-size: 75%;"),
+          icon = tags$i(class = "fa fa-pen-fancy", style="font-size: 70%"),
+          
           color = "yellow"
         )
       })
@@ -67,9 +70,10 @@ valueBoxes_SERVER <- function(id, glob){
       output$followers_count <- renderValueBox({
         valueBox(
           subtitle = "Followers",
-          value = formatC(filtered_info() %>% pull(followers_count), 
-                          format="f", big.mark = ",", digits=0),
-          icon = icon("users"),
+          value = tags$p(formatC(filtered_info() %>% pull(followers_count), 
+                                 format="f", big.mark = ",", digits=0),
+                         style = "font-size: 75%;"),
+          icon = tags$i(class = "fa fa-users", style="font-size: 70%"),
           color = "navy"
         )
       })  

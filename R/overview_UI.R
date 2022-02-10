@@ -22,10 +22,10 @@ overview_UI <- function(id){
   ns <- NS(id)
   tagList(
     fluidRow(
-      h3(strong("This app contains information about:")),
+      h3("This app contains information about:"),
       br(),
       box(
-        title = "What do the presidential candidates talk about in Twitter",
+        title = "What do the presidential candidates post in Twitter",
         width = 6,
         height = 600,
         status = "warning",
@@ -37,7 +37,7 @@ overview_UI <- function(id){
           valueBoxOutput(ns("speech_retwts"), width = NULL))
       ),
       box(
-        title = "What do the people talk about them in Twitter",
+        title = "What do people talk about them in Twitter",
         width = 6,
         height = 600,
         status = "warning",
@@ -50,7 +50,7 @@ overview_UI <- function(id){
       )
     ),
     fluidRow(
-      box(title = "Daily activity log in Twitter",
+      box(title = "Daily activity related to the candidates in Twitter",
           width = 12,
           height = 500,
           status = "warning",
@@ -100,24 +100,6 @@ overview_UI <- function(id){
     #            height = 500,
     #            uiOutput(ns("pop_tweet3"))
     #          )
-    # ),
-    # fluidRow(h3(strong("Most popular tweets from the candidates")),
-    #          tags$head(tags$script(async = NA, src = "https://platform.twitter.com/widgets.js")),
-    #          column(
-    #            width = 4,
-    #            height = 500,
-    #            uiOutput(ns("can_tweet1"))
-    #          ),
-    #          column(
-    #            width = 4,
-    #            height = 500,
-    #            uiOutput(ns("can_tweet2"))
-    #          ),
-    #          column(
-    #            width = 4,
-    #            height = 500,
-    #            uiOutput(ns("can_tweet3"))
-    #          )
     # )
   )
 }
@@ -139,27 +121,27 @@ overview_server <- function(id){
       # Rendering value boxes from the Speech Analysis
       output$speech_ntweets <- renderValueBox({
         valueBox(
-          value = "Total tweets:",
-          subtitle = overview.ls[["speech_ntweets"]],
-          icon = icon("twitter"),
+          value = tags$p("They have posted", style = "font-size: 50%;"),
+          subtitle = paste0(overview.ls[["speech_ntweets"]], " tweets"),
+          icon = tags$i(class = "fa fa-twitter", style="font-size: 70%"),
           color = "olive"
         )
       })
       
       output$speech_tlapse <- renderValueBox({
         valueBox(
-          value = "Posted between:",
+          value = tags$p("Between", style = "font-size: 50%;"),
           subtitle = overview.ls[["speech_tlapse"]],
-          icon = icon("calendar-alt"),
+          icon = tags$i(class = "fa fa-calendar-alt", style="font-size: 70%"),
           color = "yellow"
         )
       })
       
       output$speech_retwts <- renderValueBox({
         valueBox(
-          value = "Retweeted:",
-          subtitle = overview.ls[["speech_retwts"]],
-          icon = icon("retweet"),
+          value = tags$p("Which have been retweeted", style = "font-size: 50%;"), 
+          subtitle = paste0(overview.ls[["speech_retwts"]], " times"),
+          icon = tags$i(class = "fa fa-retweet", style="font-size: 70%"),
           color = "navy"
         )
       })
@@ -167,27 +149,27 @@ overview_server <- function(id){
       # Rendering value boxes from the Social Monitoring
       output$social_ntweets <- renderValueBox({
         valueBox(
-          value = "Total tweets:",
-          subtitle = overview.ls[["social_ntweets"]],
-          icon = icon("twitter"),
+          value = tags$p("We have registered", style = "font-size: 50%;"),
+          subtitle = paste0(overview.ls[["social_ntweets"]], " tweets"),
+          icon = tags$i(class = "fa fa-twitter", style="font-size: 70%"),
           color = "olive"
         )
       })
       
       output$social_nusers <- renderValueBox({
         valueBox(
-          value = "From:",
-          subtitle = overview.ls[["social_nusers"]],
-          icon = icon("users"),
+          value = tags$p("From", style = "font-size: 50%;"),
+          subtitle = paste0(overview.ls[["social_nusers"]], " users"),
+          icon = tags$i(class = "fa fa-users", style="font-size: 70%"),
           color = "yellow"
         )
       })
       
       output$social_tlapse <- renderValueBox({
         valueBox(
-          value = "Posted between:",
+          value = tags$p("Posted between", style = "font-size: 50%;"),
           subtitle = overview.ls[["social_tlapse"]],
-          icon = icon("calendar-alt"),
+          icon = tags$i(class = "fa fa-calendar-alt", style="font-size: 70%"),
           color = "navy"
         )
       })
@@ -196,9 +178,11 @@ overview_server <- function(id){
       tweets.plot <- ggplot(overview.ls[["daily_log"]], aes(x = date, group=1)) +
         geom_line(aes(y = n), color = "#DC863B") +
         theme_bw() +
-        labs(title = "Tweets related to the candidates",
-             x = NULL, 
-             y = "Tweets") +
+        labs(
+          # title = "Tweets related to the candidates",
+          x = NULL, 
+          y = "Tweets"
+          ) +
         scale_x_date(date_breaks = "4 weeks", date_labels = "%b%Y") +
         theme(panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),

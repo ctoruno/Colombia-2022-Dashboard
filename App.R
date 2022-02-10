@@ -24,7 +24,11 @@ source("R/global.R")
 
 ## 1.1 Dashboard header ========================================================================================
 header <- dashboardHeader(
-  title = "Colombia 2022",
+  title = tagList(
+    span(class = "logo-lg", "Colombia 2022"), 
+    img(class = "logo-mini", src = "https://img.icons8.com/color/48/000000/colombia-circular.png")
+    ),
+  fixed = T,
   controlbarIcon = shiny::icon("cogs"),
   dropdownMenu(type = "notifications",
                icon = icon("exclamation-triangle"),
@@ -36,6 +40,7 @@ header <- dashboardHeader(
 
 ## 1.2 Dashboard sidebar =======================================================================================
 sidebar <- dashboardSidebar(
+  collapsed = T,
   sidebarMenu(
     menuItem("Overview", 
              tabName = "overview", icon = icon("dharmachakra")),
@@ -53,6 +58,9 @@ sidebar <- dashboardSidebar(
 ## 1.3 Dashboard body ==========================================================================================
 
 body <- dashboardBody(
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "CSS_styling.css")
+  ),
   tabItems(
     
     # Overview panel
@@ -137,7 +145,7 @@ body <- dashboardBody(
 appUI <- dashboardPage(header, sidebar, body,
                        controlbar = dashboardControlbar(),
                        footer = dashboardFooter(),
-                       skin = "green-light")
+                       skin = "blue")
 
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ##
