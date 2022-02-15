@@ -42,12 +42,12 @@ tmodelling_UI <- function(id) {
           title = "Selected candidate",
           collapsed = F,
           width = 4,
-          DTOutput(ns("tmodels_main"), width = "100%", height = 450)
+          DTOutput(ns("tmodels_mainX"), width = "100%", height = 450)
         ),
         accordionItem(
           title = "Comparison candidate",
           collapsed = T,
-          DTOutput(ns("tmodels_comp"), width = "100%", height = 450)
+          DTOutput(ns("tmodels_compX"), width = "100%", height = 450)
         )
       )
     )
@@ -60,7 +60,7 @@ tmodelling_UI <- function(id) {
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-tmodelling_SERVER <- function(id, tokenized_data, glob){
+tmodelling_SERVER <- function(id, tokenized_data, glob, trigger){
   moduleServer(
     id,
     function(input, output, session){
@@ -74,10 +74,10 @@ tmodelling_SERVER <- function(id, tokenized_data, glob){
         )
         
       }) %>%
-        bindEvent(glob$submitted())
+        bindEvent(trigger())
       
       # Rendering output tables
-      output$tmodels_main <- renderDT({
+      output$tmodels_mainX <- renderDT({
         datatable(tmodels2render.ls()[["Topics Main"]],
                   options = list(dom = 't',
                                  scrollX = T,      # This solves all the columns width issue
@@ -87,7 +87,7 @@ tmodelling_SERVER <- function(id, tokenized_data, glob){
         )
       })
       
-      output$tmodels_comp <- renderDT({
+      output$tmodels_compX <- renderDT({
         datatable(tmodels2render.ls()[["Topics Comp"]],
                   options = list(dom = 't',
                                  scrollX = T,      # This solves all the columns width issue

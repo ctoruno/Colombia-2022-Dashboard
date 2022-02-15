@@ -21,7 +21,7 @@
 dailylog_output <- function(id) {
   ns <- NS(id)
   tagList(
-    plotlyOutput(ns("dailylog_plot"))
+    plotlyOutput(ns("dailylog_tseries"))
   )
 }
 
@@ -34,7 +34,7 @@ dailylog_output <- function(id) {
 
 
 # Defining a SERVER function
-dailylog_server <- function(id, panel, glob){
+dailylog_server <- function(id, panel, glob, trigger){
   
   moduleServer(
     id,
@@ -48,10 +48,10 @@ dailylog_server <- function(id, panel, glob){
       }
       
       # Reactive server
-      tweets.plotly <- reactive({
+      collapsed_data <- reactive({
         
         # Collapsing data
-        collapsed_data <- data2plot %>%
+        data2plot %>%
           select(date, 
                  starts_with(glob$main_candidate %>% str_sub(2)),
                  starts_with(glob$comp_candidate %>% str_sub(2))) %>%
@@ -59,9 +59,15 @@ dailylog_server <- function(id, panel, glob){
                        names_to = "user",
                        names_pattern = "(.*)_tweets",
                        values_to = "tweets")
+      }) %>%
+        bindEvent(trigger())
+      
+      
+      tweets.plotly <- reactive({
         
         # Creating ggplot
-        tweets.plot <- ggplot(collapsed_data, aes(x = date, group=1)) +
+        tweets.ggplot <- 
+          ggplot(collapsed_data(), aes(x = date, group=1)) +
           geom_line(aes(y = tweets, color = user)) +
           theme_bw() +
           labs(title = NULL,
@@ -80,16 +86,16 @@ dailylog_server <- function(id, panel, glob){
                 plot.caption = element_text(vjust = -0.5, hjust = 1, size = 14))
         
         # Converting to plotly element
-        ggplotly(tweets.plot, dynamicTicks = T) %>%
+        ggplotly(tweets.ggplot, dynamicTicks = T) %>%
           rangeslider() %>%
           layout(hovermode = "x") %>%
           config(displaylogo = F)
-        
-      }) %>%
-        bindEvent(glob$submitted())
+      })
+      
+      
       
       # Rendering output
-      output$dailylog_plot <- renderPlotly(tweets.plotly())
+      output$dailylog_tseries <- renderPlotly(tweets.plotly())
       
       
     }

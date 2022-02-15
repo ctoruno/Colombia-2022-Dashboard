@@ -5,6 +5,7 @@ h3 {
   text-align: center;
   font-weight: 600;
   font-size: 200%;
+  color: #212F3C;
 }
 
 h3 p {
@@ -15,6 +16,8 @@ h3 p {
 .skin-blue .main-header .logo {
   font-family: 'Fira Sans', sans-serif;
   background-color: #212F3C;
+  position: fixed; 
+  overflow: visible;
 }
 
 .skin-blue .main-header .logo:hover {
@@ -32,6 +35,11 @@ h3 p {
   background-color: #212F3C;
 }
 
+.sidebar{
+  position: fixed; 
+  overflow: visible;
+}
+
 .skin-blue .main-sidebar  {
   font-family: 'Fira Sans', sans-serif;
   background-color: #212F3C;
@@ -44,7 +52,8 @@ h3 p {
 }
 
 #sidebarCollapsed {
-  border-top: 5px solid #F4E4E4;
+  position: fixed; 
+  overflow: visible;
 }
 
 .logo-mini {
@@ -68,6 +77,5 @@ h3 p {
 .bg-navy {
     background-color: #D69C4E!important;
 }
-
                                 
                                 

@@ -25,19 +25,19 @@ freqTables_output <- function(id) {
       id = ns("acc"),
       accordionItem(
         title = "Selected candidate",
-        collapsed = F,
+        collapsed = T,
         width = 4,
-        DTOutput(ns("top_terms_main"), width = "100%", height = 450)
+        DTOutput(ns("top_terms_mainX"), width = "100%", height = 450)
       ),
       accordionItem(
         title = "Comparison candidate",
         collapsed = T,
-        DTOutput(ns("top_terms_comp"), width = "100%", height = 450)
+        DTOutput(ns("top_terms_compX"), width = "100%", height = 450)
       ),
       accordionItem(
         title = "Top used hashtags: selected candidate",
         collapsed = T,
-        DTOutput(ns("top_hashtags"), width = "100%", height = 450)
+        DTOutput(ns("top_hashtagsX"), width = "100%", height = 450)
       )
     )
   )
@@ -60,79 +60,79 @@ wordclouds_output <- function(id) {
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # Defining SERVER function
-frequency_server <- function(id, panel, glob){
+frequency_server <- function(id, panel, glob, trigger){
   
   moduleServer(
     id,
     function(input, output, session){
+      
+      # Which data frame are we gonna work with?
+      if (panel == "social"){
+        data2analyze <- freq_analysis.ls$`Social Monitoring`
+      } else if (panel == "speech"){
+        data2analyze <- freq_analysis.ls$`Speech Analysis`
+      }
+      
+      # Reactive server
+      data2render.ls <- reactive({
         
-        # Which data frame are we gonna work with?
-        if (panel == "social"){
-          data2analyze <- freq_analysis.ls$`Social Monitoring`
-        } else {
-          data2analyze <- freq_analysis.ls$`Speech Analysis`
-        }
+        # Top terms
+        top_terms1 <- data2analyze$`Top Words` %>%
+          select(starts_with(glob$main_candidate %>% str_sub(2)))
         
-        # Reactive server
-        data2render.ls <- reactive({
-          
-          # Top terms
-          top_terms1 <- data2analyze$`Top Words` %>%
-            select(starts_with(glob$main_candidate %>% str_sub(2)))
-          
-          top_terms2 <- data2analyze$`Top Words` %>%
-            select(starts_with(glob$comp_candidate %>% str_sub(2)))
-          
-          # Top hashtags
-          top_hashtags <- data2analyze$`Top Hashtags` %>%
-            select(starts_with(glob$main_candidate %>% str_sub(2)))
-          
-          # Output list
-          list("Top Terms1" = top_terms1,
-               "Top Terms2" = top_terms2,
-               "Top Hash"   = top_hashtags)
-          
-        }) %>%
-          bindEvent(glob$submitted())
+        top_terms2 <- data2analyze$`Top Words` %>%
+          select(starts_with(glob$comp_candidate %>% str_sub(2)))
         
-        # Rendering wordcloud
-        output$wordcloud <- renderWordcloud2({
-          wordcloud2(data2render.ls()[["Top Terms1"]], size = 0.9,
-                     color = rep_len(c("DarkRed", "CornflowerBlue", "DarkOrange"),
-                                     nrow(data2render.ls()[["Top Terms1"]])),
-                     ellipticity = 0.2, shuffle = F)
-        })
+        # Top hashtags
+        top_hashtags <- data2analyze$`Top Hashtags` %>%
+          select(starts_with(glob$main_candidate %>% str_sub(2)))
         
-        # Rendering tables
-        output$top_terms_main <- renderDT({
-          datatable(data2render.ls()[["Top Terms1"]],
-                    options = list(dom = 'tp',
-                                   scrollX = T,      # This solves all the columns width issue
-                                   autoWidth = T,    # Required to modify columns width
-                                   columnDefs = list(list(width = '50px',
-                                                          targets = "_all")))
-          )
-        })
+        # Output list
+        list("Top Terms1" = top_terms1,
+             "Top Terms2" = top_terms2,
+             "Top Hash"   = top_hashtags)
         
-        output$top_terms_comp <- renderDT({
-          datatable(data2render.ls()[["Top Terms2"]],
-                    options = list(dom = 'tp',
-                                   scrollX = T,      # This solves all the columns width issue
-                                   autoWidth = T,    # Required to modify columns width
-                                   columnDefs = list(list(width = '50px',
-                                                          targets = "_all")))
-          )
-        })
-        
-        output$top_hashtags <- renderDT({
-          datatable(data2render.ls()[["Top Hash"]],
-                    options = list(dom = 't',
-                                   scrollX = T,      # This solves all the columns width issue
-                                   autoWidth = T,    # Required to modify columns width
-                                   columnDefs = list(list(width = '50px',
-                                                          targets = "_all")))
-          )
-        })
+      }) %>%
+        bindEvent(trigger())
+      
+      # Rendering wordcloud
+      output$wordcloud <- renderWordcloud2({
+        wordcloud2(data2render.ls()[["Top Terms1"]], size = 0.9,
+                   color = rep_len(c("DarkRed", "CornflowerBlue", "DarkOrange"),
+                                   nrow(data2render.ls()[["Top Terms1"]])),
+                   ellipticity = 0.2, shuffle = F)
+      })
+      
+      # Rendering tables
+      output$top_terms_mainX <- renderDT({
+        datatable(data2render.ls()[["Top Terms1"]],
+                  options = list(dom = 'tp',
+                                 scrollX = T,      # This solves all the columns width issue
+                                 autoWidth = T,    # Required to modify columns width
+                                 columnDefs = list(list(width = '50px',
+                                                        targets = "_all")))
+        )
+      })
+      
+      output$top_terms_compX <- renderDT({
+        datatable(data2render.ls()[["Top Terms2"]],
+                  options = list(dom = 'tp',
+                                 scrollX = T,      # This solves all the columns width issue
+                                 autoWidth = T,    # Required to modify columns width
+                                 columnDefs = list(list(width = '50px',
+                                                        targets = "_all")))
+        )
+      })
+      
+      output$top_hashtagsX <- renderDT({
+        datatable(data2render.ls()[["Top Hash"]],
+                  options = list(dom = 't',
+                                 scrollX = T,      # This solves all the columns width issue
+                                 autoWidth = T,    # Required to modify columns width
+                                 columnDefs = list(list(width = '50px',
+                                                        targets = "_all")))
+        )
+      })
     })
 }     
 
