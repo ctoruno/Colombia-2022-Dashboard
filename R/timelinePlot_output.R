@@ -91,9 +91,7 @@ dailylog_server <- function(id, panel, glob, trigger){
           layout(hovermode = "x") %>%
           config(displaylogo = F)
       })
-      
-      
-      
+ 
       # Rendering output
       output$dailylog_tseries <- renderPlotly(tweets.plotly())
       

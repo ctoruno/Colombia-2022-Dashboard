@@ -5,12 +5,23 @@ h3 {
   text-align: center;
   font-weight: 600;
   font-size: 200%;
-  color: #212F3C;
+  color: #202023;
 }
 
 h3 p {
   font-family: 'Fira Sans', sans-serif;
   text-align: left;
+  color: #FFFFFF;
+}
+
+h4 {
+  font-family: 'Fira Sans', sans-serif;
+  text-align: center;
+  font-weight: 300;
+  font-size: 120%;
+  margin-right: 75px;
+  margin-left:  75px;
+  color: #2A3948
 }
 
 .skin-blue .main-header .logo {

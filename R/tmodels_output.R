@@ -79,9 +79,10 @@ tmodelling_SERVER <- function(id, tokenized_data, glob, trigger){
       # Rendering output tables
       output$tmodels_mainX <- renderDT({
         datatable(tmodels2render.ls()[["Topics Main"]],
+                  rownames = F,
                   options = list(dom = 't',
                                  scrollX = T,      # This solves all the columns width issue
-                                 autoWidth = T,    # Required to modify columns width
+                                 autoWidth = F,    # Required to modify columns width
                                  columnDefs = list(list(width = '145px',
                                                         targets = "_all")))
         )
@@ -89,9 +90,10 @@ tmodelling_SERVER <- function(id, tokenized_data, glob, trigger){
       
       output$tmodels_compX <- renderDT({
         datatable(tmodels2render.ls()[["Topics Comp"]],
+                  rownames = F,
                   options = list(dom = 't',
                                  scrollX = T,      # This solves all the columns width issue
-                                 autoWidth = T,    # Required to modify columns width
+                                 autoWidth = F,    # Required to modify columns width
                                  columnDefs = list(list(width = '145px',
                                                         targets = "_all")))
         )

@@ -106,9 +106,11 @@ frequency_server <- function(id, panel, glob, trigger){
       # Rendering tables
       output$top_terms_mainX <- renderDT({
         datatable(data2render.ls()[["Top Terms1"]],
+                  rownames = F,
+                  colnames = c("Term", "Mentions"),
                   options = list(dom = 'tp',
                                  scrollX = T,      # This solves all the columns width issue
-                                 autoWidth = T,    # Required to modify columns width
+                                 autoWidth = F,    # Required to modify columns width
                                  columnDefs = list(list(width = '50px',
                                                         targets = "_all")))
         )
@@ -116,9 +118,11 @@ frequency_server <- function(id, panel, glob, trigger){
       
       output$top_terms_compX <- renderDT({
         datatable(data2render.ls()[["Top Terms2"]],
+                  rownames = F,
+                  colnames = c("Term", "Mentions"),
                   options = list(dom = 'tp',
                                  scrollX = T,      # This solves all the columns width issue
-                                 autoWidth = T,    # Required to modify columns width
+                                 autoWidth = F,    # Required to modify columns width
                                  columnDefs = list(list(width = '50px',
                                                         targets = "_all")))
         )
@@ -126,9 +130,11 @@ frequency_server <- function(id, panel, glob, trigger){
       
       output$top_hashtagsX <- renderDT({
         datatable(data2render.ls()[["Top Hash"]],
+                  rownames = F,
+                  colnames = c("Hashtag", "Mentions"),
                   options = list(dom = 't',
                                  scrollX = T,      # This solves all the columns width issue
-                                 autoWidth = T,    # Required to modify columns width
+                                 autoWidth = F,    # Required to modify columns width
                                  columnDefs = list(list(width = '50px',
                                                         targets = "_all")))
         )
