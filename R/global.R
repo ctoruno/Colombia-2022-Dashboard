@@ -22,10 +22,12 @@ daily_activity.ls         <- readRDS("data/daily_activity.rds")
 user_info.df              <- readRDS("data/user_info.rds")
 tmodels.ls                <- readRDS("data/tmodels.rds")
 twitter_widgets_urls.ls   <- readRDS("data/twitter_widgets_urls.rds")
+candidateINFO.df          <- readRDS("data/candidateINFO.rds")
 
 # Source scripts
 source("R/overview_UI.R")
 source("R/candidates_input.R")
+source("R/candidateINFO_output.R")
 source("R/valueBoxes_output.R")
 source("R/timelinePlot_output.R")
 source("R/frequency_analysis.R")
@@ -55,5 +57,5 @@ candidates.ls <- list( "Amaya, Carlos" = c("@CarlosAmayaR", "amaya"),
                        "Toro, Dilian Francisca" = c("@DilianFrancisca", "toro"),
                        "Uriana, Arelis" = c("@urianaguariyu", "arelis"),
                        "Velasco, Luis Fernando" = c("@velascoluisf", "velasco"),
-                       "Verano, Eduardo"= c("@veranodelarosa", "verano"),
+                       "Verano, Eduardo" = c("@veranodelarosa", "verano"),
                        "Zuluaga, Óscar Iván" = c("@OIZuluaga", "zuluaga"))

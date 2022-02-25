@@ -7,7 +7,7 @@
 ##
 ## Creation date:     December 25th, 2021
 ##
-## This version:      February 15th, 2022
+## This version:      February 25th, 2022
 ##
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -76,13 +76,13 @@ body <- dashboardBody(
       tabName = "speech",
       h3("Speech Analysis"),
       h4(paste("In this section we present some data about the twitter activity",
-                    "of the different candidates that at some point had intentions to run",
+                    "of the different candidates that at some point had (or still have) intentions to run",
                     "for the 2022 presidential election in Colombia.")),
       br(),
       fluidRow(
         box(title = "Filters",
-            width = 3,
-            height = 450,
+            width = 4,
+            height = 600,
             status = "warning",
             solidHeader = F,
             div(
@@ -105,12 +105,7 @@ body <- dashboardBody(
               align = "center"
             )
         ),
-        box(title = "Candidate overview",
-            width = 9,
-            height = 450,
-            status = "warning",
-            solidHeader = F
-        )
+        CandidateINFO_UI("speech_cinfo")
       ),
       fluidRow(
         valueBoxes_UI(id = "speech_vboxes")
@@ -161,7 +156,7 @@ body <- dashboardBody(
       tabName = "social",
       h3("Social Monitoring"),
       h4(paste("In this section we present some data about what the twitter community",
-               "post about the different candidates that at some point had intentions to run",
+               "post about the different candidates that at some point had (or still have) intentions to run",
                "for the 2022 presidential election in Colombia.")),
       br(),
       fluidRow(
@@ -187,12 +182,7 @@ body <- dashboardBody(
               align = "center"
             )
         ),
-        box(title = "Overview",
-            width = 9,
-            height = 450,
-            status = "warning",
-            solidHeader = F
-        )
+        CandidateINFO_UI("social_cinfo")
       ),
       fluidRow(
         valueBoxes_UI(id = "social_vboxes")
@@ -249,7 +239,7 @@ body <- dashboardBody(
     ),
     
     
-    ### 1.3.5. Sentiment Trends Panel Tab ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++####
+    ### 1.3.5. Information Panel Tab +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++####
     
     tabItem(
       tabName = "about",
@@ -324,8 +314,10 @@ appSERVER <- function(input, output, session) {
     print(input$panelTab)
     print(glob$main_candidate)
     print(glob$comp_candidate)
+    print(speech_ses.count)
   })
   
+  # Flag for active panel
   activePanel <- reactive({
     if (input$panelTab == "speech"){
       panel <- "speechTAB"
@@ -334,6 +326,47 @@ appSERVER <- function(input, output, session) {
     }
     return(panel)
   })
+  
+  # Start pop-up message
+  showModal(modalDialog(
+    title = "Important message",
+    paste("This shiny app is still under development. Therefore, some functionalities might not work properly.",
+          "I appreciate your understanding. For any comments and doubts, please feel free to contact me using",
+          "the contact information in the About panel."),
+    easyClose = TRUE
+  ))
+  
+  # Using message
+  speech_ses.count <- 0
+  social_ses.count <- 0
+  
+  observe(
+    if (input$panelTab == "speech" & speech_ses.count == 0) {
+      showModal(modalDialog(
+        title = "REACTIVITY ISSUE",
+        paste('A technical issue has been detected for this panel. In order for the information',
+              'to be displayed, please make sure to have the "Tweets posted in time" box and all',
+              'individual accordion item inside the "Most used terms" box collapsed before',
+              'submiting a new information. Sorry for the issues.'),
+        easyClose = TRUE
+      ))
+      speech_ses.count <- speech_ses.count + 1
+    }
+  )
+  
+  observe(
+    if (input$panelTab == "social" & social_ses.count == 0) {
+      showModal(modalDialog(
+        title = "REACTIVITY ISSUE",
+        paste('A technical issue has been detected for this panel. In order for the information',
+              'to be displayed, please make sure to have the "Tweets posted in time" box and all',
+              'individual accordion item inside the "Most used terms" box collapsed before',
+              'submiting a new information. Sorry for the issues.'),
+        easyClose = TRUE
+      ))
+      social_ses.count <- social_ses.count + 1
+    }
+  )
 
   ## 2.1 Overview Panel  =======================================================================================
   
@@ -355,6 +388,11 @@ appSERVER <- function(input, output, session) {
                     glob = glob,
                     resetX = activePanel)
   
+  # Candidate information module
+  CandidateINFO_SERVER("speech_cinfo",
+                       glob = glob,
+                       trigger = trigger_speech)
+
   # Value boxes module
   valueBoxes_SERVER(id = "speech_vboxes", 
                     glob = glob,
@@ -393,6 +431,11 @@ appSERVER <- function(input, output, session) {
                     glob = glob,
                     resetX = activePanel)
   
+  # Candidate information module
+  CandidateINFO_SERVER("social_cinfo",
+                       glob = glob,
+                       trigger = trigger_social)
+  
   # Value boxes module
   valueBoxes_SERVER(id = "social_vboxes", 
                     glob = glob,
@@ -415,6 +458,7 @@ appSERVER <- function(input, output, session) {
   widgets_SERVER("social_widgets",
                  panel = "social",
                  glob = glob)
+  
   
 }
 
