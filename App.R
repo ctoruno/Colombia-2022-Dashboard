@@ -14,7 +14,7 @@
 
 # Required packages and data loading
 source("R/global.R")
-
+today<-Sys.Date()
 
 ## +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ##
@@ -226,6 +226,7 @@ body <- dashboardBody(
     
     ### 1.3.4. Sentiment Trends Panel Tab ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++####
     
+    
     tabItem(
       tabName = "sentiment",
       h3("Sentiment Trends"),
@@ -234,8 +235,58 @@ body <- dashboardBody(
                "for the 2022 presidential election in Colombia.")),
       br(),
       
-      h3("Content under development")
+      #h3("Content under development")
       
+      fluidRow(
+        box(title = "Filters",
+            width = 4,
+            height = 600,
+            status = "warning",
+            solidHeader = F,
+            div(
+              id = "filters4sentiment",
+              candidates_input(id = "sentiment_candidate")
+            ),
+            date_input(id="sentiment_date"),
+            fluidRow(
+              actionBttn(
+                inputId = "submit_sentiment",
+                label   = "Submit",
+                style   = "unite", 
+                color   = "success",
+                size    =  "sm"),
+              align = "center"
+            )
+        ),
+        CandidateINFO_UI("sentiment_cinfo")
+      ),
+      fluidRow(
+        box(title = "Main Sentiments",
+            width = 12,
+            height = 700,
+            status = "warning",
+            solidHeader = F,
+            sentiment_nrc_output("nrc_sentiment_plot")
+        )
+      ),
+      fluidRow(
+        box(title = "Sentiments in time",
+            width = 12,
+            height = 700,
+            status = "warning",
+            solidHeader = F,
+            sentiment_time_output("time_sentiment_plot")
+        )
+      ),
+      fluidRow(
+        box(title = "Sentiments Followers / Detractors",
+            width = 12,
+            height = 700,
+            status = "warning",
+            solidHeader = F,
+            sentiment_follower_output("follower_sentiment_plot")
+        )
+      )
     ),
     
     
@@ -323,6 +374,8 @@ appSERVER <- function(input, output, session) {
       panel <- "speechTAB"
     } else if (input$panelTab == "social"){
       panel <- "socialTAB"
+    } else if (input$panelTab == "sentiment"){
+      panel<-"sentimentTAB"
     }
     return(panel)
   })
@@ -459,7 +512,48 @@ appSERVER <- function(input, output, session) {
                  panel = "social",
                  glob = glob)
   
+  ## 2.4 Sentiment Panel =========================================================================================
+  # Trigger definition and actions
+  trigger_sentiment <- reactive(input$submit_sentiment)
+  # observeEvent(input$reset_speech, {
+  #   updateBox(
+  #     "speech_tseries_box",
+  #     action = "toggle"
+  #   )
+  # })
   
+  # Applying a module that updates the comparison candidates inputs according to the main candidate input
+  candidates_server(id = "sentiment_candidate", 
+                    glob = glob,
+                    resetX = activePanel)
+  
+  
+  date_server(id = "sentiment_date",
+              glob = glob,
+              resetX = activePanel)
+  
+  # Candidate information module
+  CandidateINFO_SERVER("sentiment_cinfo",
+                       glob = glob,
+                       trigger = trigger_sentiment)
+
+  #Graph of sentiments NRC
+  sent_nrc_server(id="nrc_sentiment_plot",
+                  panel = "sentiment",
+                  glob = glob,
+                  trigger = trigger_sentiment)
+  
+  #Graph of sentiments Time
+  sent_time_server(id="time_sentiment_plot",
+                  panel = "sentiment",
+                  glob = glob,
+                  trigger = trigger_sentiment)
+  
+  #Graph of sentiments Follower
+  sent_follower_server(id="follower_sentiment_plot",
+                   panel = "sentiment",
+                   glob = glob,
+                   trigger = trigger_sentiment)
 }
 
 shiny::shinyApp(appUI, appSERVER)
