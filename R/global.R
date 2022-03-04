@@ -23,6 +23,7 @@ user_info.df              <- readRDS("data/user_info.rds")
 tmodels.ls                <- readRDS("data/tmodels.rds")
 twitter_widgets_urls.ls   <- readRDS("data/twitter_widgets_urls.rds")
 candidateINFO.df          <- readRDS("data/candidateINFO.rds")
+sentiment.df.ls          <- readRDS("data/sentiment_nrc.rds") 
 
 # Source scripts
 source("R/overview_UI.R")
